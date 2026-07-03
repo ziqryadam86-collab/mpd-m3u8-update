@@ -1,0 +1,58 @@
+name: Update Okey Stream Links
+
+on:
+  schedule:
+    - cron: '*/5 * * * *'
+  workflow_dispatch:
+
+jobs:
+  update-links:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@v4
+
+    - name: Install Curl and JQ
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y curl jq
+
+    - name: Fetch Live Streams and Generate Files
+      run: |
+        # 1. Ambil data JSON dari API[span_0](start_span)[span_0](end_span)
+        RESPONSE=$(curl -s -X POST "https://co3y6iwoio.tenbytecdn.com/api/v1/public/streaming/channel-play" \
+          -H "Content-Type: application/json" \
+          -H "Accept-Language: ms" \
+          -d '{"channelId": "fc596cbc-6f4f-4ab8-bb60-82fb27e38089", "deviceId": "termux-dev", "deviceName": "Termux Client", "deviceType": "web"}')
+
+        # 2. Ekstrak pautan HLS dan DASH[span_1](start_span)[span_1](end_span)
+        M3U8_URL=$(echo "$RESPONSE" | jq -r '.data.playbackUrls.hls')
+        MPD_URL=$(echo "$RESPONSE" | jq -r '.data.playbackUrls.dash')
+
+        # 3. Bina fail okey.m3u8 (Format Master Playlist)
+        echo "#EXTM3U" > okey.m3u8
+        echo '#EXT-X-STREAM-INF:PROGRAM-ID=1,BANDWIDTH=2392187,CODECS="avc1.4D4029,mp4a.40.5",RESOLUTION=960x540,FRAME-RATE=25' >> okey.m3u8
+        echo "$M3U8_URL" >> okey.m3u8
+
+        # 4. Bina fail okey.mpd (Format DASH Redirect / Location Tag)
+        # Sila tukar simbol & kepada &amp; di dalam URL supaya menepati standard XML
+        XML_SAFE_MPD_URL=$(echo "$MPD_URL" | sed 's/&/\&amp;/g')
+
+        echo '<?xml version="1.0" encoding="UTF-8"?>' > okey.mpd
+        echo '<MPD xmlns="urn:mpeg:dash:schema:mpd:2011" profiles="urn:mpeg:dash:profile:isoff-live:2011" type="dynamic">' >> okey.mpd
+        echo "  <Location>$XML_SAFE_MPD_URL</Location>" >> okey.mpd
+        echo '  <Period id="p0" start="PT0S" />' >> okey.mpd
+        echo '</MPD>' >> okey.mpd
+
+        # Cetak log untuk semakan
+        echo "M3U8 and MPD Master Files Generated Successfully!"
+
+    - name: Commit and Push Changes
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add okey.m3u8 okey.mpd
+        git diff --quiet && git diff --staged --quiet || git commit -m "Auto Update Stream Links [$(date)]"
+        git push
+        

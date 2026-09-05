@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <MPD xmlns="urn:mpeg:dash:schema:mpd:2011" profiles="urn:mpeg:dash:profile:isoff-live:2011" type="dynamic">
-  <Location>https://cuwf8jayq1.tenbytecdn.com/live/tvokey/manifest.mpd?md5=DYW-9ZIqDLyC_tSFb8SKpQ&amp;expires=1788626701</Location>
+  <Location>https://cuwf8jayq1.tenbytecdn.com/live/tvokey/manifest.mpd?md5=PDpI-Sp9JdiZtHUAkyCNpg&amp;expires=1788634479</Location>
   <Period id="p0" start="PT0S" />
 </MPD>
